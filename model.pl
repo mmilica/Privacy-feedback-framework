@@ -580,6 +580,11 @@ attrsInProfile(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|Rest]) 
 	write(profile(SP, TransactionId, Attribute, Source)), nl,
 	attrsInProfile(SP, TransactionId, Rest).
 
+%attrsInProfile(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|Rest]) :-
+%	write('Linked profiles. '),
+%	isLinked(SP, TransactionId, TransactionId2, _),
+%	profile(SP, TransactionId2, Attribute, Source),
+%	attrsInProfile(SP, TransactionId, Rest).	
 	
 /*{+==============================================================
  |
@@ -598,6 +603,13 @@ attrsInLinkedProfiles(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|
 	recordedInDB(SP, TransactionId, attr(Attribute, _), Source),
 	write('DEBUG: Found the attribute recorded in the DB: '), write(TransactionId), nl,
 	attrsInLinkedProfiles(SP, TransactionId, Rest).	
+	
+attrsInLinkedProfiles(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|Rest]) :-
+	nl,nl,write(recordedInDB(SP, TransactionId, attr(Attribute, _), Source)),nl,nl,
+	isLinked(SP, TransactionId, TransactionId2, _),
+	recordedInDB(_, TransactionId2, attr(Attribute, _), Source),
+	attrsInLinkedProfiles(SP, TransactionId, Rest)
+	.	
 	
 /*{+==============================================================
  |

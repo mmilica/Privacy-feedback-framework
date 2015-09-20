@@ -645,7 +645,17 @@ formLink(SP, TransactionId, TransactionId2, Reason) :-
 	write('DEBUG: Trying the second branch of form link'), nl,
 	!,
 	assert(isLinked(SP, TransactionId, TransactionId2, [Reason])),
-	assert(isLinked(SP, TransactionId2, TransactionId, [Reason]))
+	assert(isLinked(SP, TransactionId2, TransactionId, [Reason])),
+	transactionID(TransactionId3),
+	\+ TransactionId = TransactionId3,
+	%
+	%NOTE - there is a choice on the recorded linking reason for this 'indirect link'
+	%It can remain the same, but we could also choose to place a note 'indLink'
+	%It is also possible to check if the reason is 'userInput' type of attribute, in which case we could choose
+	%	not to record further links.
+	%
+	formLink(SP, TransactionId, TransactionId3, Reason),
+	fail
 	.
 	
 formLink(_, _, _, _).

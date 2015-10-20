@@ -142,10 +142,10 @@ getAttrFromList([First|Rest], Prefix, Attr) :-
 	
 showCred(User, SP, TransactionID, Cred, List) :-
 	write('***************************************************'), nl,
-	write('first rule of showCred (X509): '), write(Cred), nl,
+	write('first rule of showCred (X.509): '), write(Cred), nl,
 	write('***************************************************'), nl,
 	Cred,
-	Cred = cred(_, 'X509', _, ListOfCredAttrs), !,
+	Cred = cred(_, 'X.509', _, ListOfCredAttrs), !,
 	usersCred(User, Cred),
 	write('***************************************************'), nl,
 	write('DEBUG: Will be showing: '), write(Cred), nl,
@@ -187,7 +187,7 @@ showCred(User, SP, TransactionID, Cred, List) :-
 	usersCred(User, Cred),
 	showCredAttrs(User, SP, TransactionID, Cred, List)
 	.
-	
+
 	
 /*{===============================================================
  |
@@ -196,9 +196,9 @@ showCred(User, SP, TransactionID, Cred, List) :-
  |    effects: extracts the attribute names from the list of 
  | 				attr(Name, Value) structures.
  |
- +=============================================================}*/
+ +=============================================================}*/	
 
-
+ 
 createListOfAttrNames([], []) :- !.
 
 createListOfAttrNames([attr(NewFirst, _)|Rest], [NewFirst|NewRest]) :-
@@ -215,8 +215,8 @@ createListOfAttrNames([attr(NewFirst, _)|Rest], [NewFirst|NewRest]) :-
  |    effects: calls the addToProvidersDB predicate for all the attributes from the given list 
  |
  +=============================================================}*/
-
- 
+	
+	
 showCredAttrs(_, _, _, _, []) :- !.
 
 
@@ -254,7 +254,7 @@ showCredAttrs(User, SP, TransactionID, Cred, [First|Rest]) :-
 	%write(showCredAttrs(User, SP, TransactionID, Cred, Rest)), nl,
 	showCredAttrs(User, SP, TransactionID, Cred, Rest)
 	.
-
+	
 	
 /*-------in case TID needs to be created--------*/
 showCredAttrs(User, SP, TransactionID, Cred, [First|Rest]) :-
@@ -274,7 +274,7 @@ showCredAttrs(User, SP, TransactionID, Cred, [First|Rest]) :-
 	.
 	
 
-	
+
 /*{===============================================================
  |
  |  userInput(User, SP, TransactionID, Attrs)
@@ -361,38 +361,40 @@ establishLinks(SP, TransactionId, attr(AttrName, AttrValue), Source) :-
 	(
 		(
 		write('DEBUG: About to search for the attribute in the other considered profile. '), nl,
-		write(attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl,
-		attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source)),
-		write(attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl,
+		write(attrsInProfile(SP, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl,
+		attrsInProfile(SP, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source)),
+		write(attrsInProfile(SP, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl,
 		write('DEBUG: Found the required unique attribute in profile: '), nl,
-		write(attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl, 
+		write(attrsInProfile(SP, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl, 
 		Reason = reason(AttrName, Source)
 		)
-		;
-		(
-		collaboratingSPs(SP, SP2),
+		%;
+		%(
+		% this part is relevant if the recorded data is not immediately recorded in collaborating providers' databases
+		%collaboratingSPs(SP, SP2),
 		%write('DEBUG: Found collaborating SPs: '), write(SP), write(' '), write(SP2), nl, 
 		%write('DEBUG: About to look for the attr in other SPs profiles: '), nl,
 		%write(attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source))), nl, 
-		attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source)),
+		%attrsInProfile(SP2, TransactionId2, attrNameSourcePair(attr(AttrName, AttrValue), Source)),
 		%write('DEBUG: Found the attr in profile: '), write(TransactionId2), nl,
-			(
-			%Note - this disjunction can be extended when the list of possible types of sources is extended
-				(
-					Source = 'UserInput',
-					atomic_list_concat(['collaboration', SP, '-', SP2, ':', 'UserInput'], Reason)
-				)
-				;
-				(
-					Source = credSource(Technology, Type, Issuer),  %???ADDED THE ISSUER
-					atomic_list_concat(['collaboration', SP, '-', SP2, ':', 'credSource', '(', Technology, '; ', Type, ')'], Reason)
-				)
-			)
-		)
+		%	(
+		%	%Note - this disjunction can be extended when the list of possible types of sources is extended
+		%		(
+		%			Source = 'UserInput',
+		%			atomic_list_concat(['collaboration', SP, '-', SP2, ':', 'UserInput'], Reason)
+		%		)
+		%		;
+		%		(
+		%			Source = credSource(Technology, Type, Issuer),  %???ADDED THE ISSUER
+		%			atomic_list_concat(['collaboration', SP, '-', SP2, ':', 'credSource', '(', Technology, '; ', Type, ')'], Reason)
+		%		)
+		%	)
+		%)
 	),	
 	write('DEBUG: Going into formLink: '), write(formLink(SP, TransactionId, TransactionId2, reason(AttrName, Source))), nl, 
 	formLink(SP, TransactionId, TransactionId2, Reason),
-	formLink(SP2, TransactionId2, TransactionId, Reason),
+	% If the collaborating providers exchange all data the following rule should also be kept. 
+	% formLink(SP2, TransactionId2, TransactionId, Reason),
 	fail.
 	
 
@@ -407,7 +409,7 @@ establishLinks(SP, TransactionId, Attribute, Source) :-
 
 establishLinks(_, _, _, _).
 
-	
+
 	
 /*{+==============================================================
  |
@@ -428,12 +430,12 @@ establishLinksBasedOnUniqueSets(SP, TransactionId) :-
 	\+ isLinked(SP, TransactionId, TransactionId2, _),
 	write('DEBUG: Going to search for unique set in linked profiles (single SP): '), 
 	write(uniqueSetInLinkedProfiles(SP2, TransactionId2, UniqueSet)), nl,
-	collaboratingSPs(SP, SP2),
-	uniqueSetInLinkedProfiles(SP2, TransactionId2, UniqueSet),
+	%collaboratingSPs(SP, SP2),
+	uniqueSetInLinkedProfiles(SP, TransactionId2, UniqueSet),
 	write('DEBUG: Found uniqueSetInLinkedProfiles, about to formLink from (establishLinksBasedOnUniqueSets). '), nl,
 	formLink(SP, TransactionId, TransactionId2, reason('UniqueSetInLinkedProfiles', UniqueSet)), 
-	%
-	formLink(SP2, TransactionId, TransactionId2, reason('UniqueSetInLinkedProfiles', UniqueSet)), 
+	%If the collaborating providers exchange all data the following rule should also be kept 
+	%eformLink(SP2, TransactionId, TransactionId2, reason('UniqueSetInLinkedProfiles', UniqueSet)), 
 	fail.
 	
  
@@ -453,6 +455,10 @@ establishLinksBasedOnUniqueSets(_, _).
  |
  +================================================================}*/
  
+% 
+%this is to be used if the recorded information is not immediately recorded in the collaborating providers' databases
+%
+
  
 establishLinksBasedOnUniqueSetsCollaboratingSPs(SP, TransactionId) :-
 	write('DEBUG: entered establishLinksBasedOnUniqueSetsCollaboratingSPs. '), nl,
@@ -466,14 +472,15 @@ establishLinksBasedOnUniqueSetsCollaboratingSPs(SP, TransactionId) :-
 	write(establishLinksBasedOnUniqueSetsCollaboratingSPs(SP2, TransactionId2, UniqueSet)), nl,
 	uniqueSetInLinkedProfilesCollaboratingSPs(SP2, TransactionId2, UniqueSet),
 	formLink(SP, TransactionId, TransactionId2, reason('uniqueSetInLinkedProfilesCollaboratingSPs', UniqueSet)), 
-	formLink(SP2, TransactionId, TransactionId2, reason('uniqueSetInLinkedProfilesCollaboratingSPs', UniqueSet)), 
+	%If the collaborating providers exchange all data the following rule should also be kept. 
+	%formLink(SP2, TransactionId, TransactionId2, reason('uniqueSetInLinkedProfilesCollaboratingSPs', UniqueSet)), 
 	fail.
-	
 
  
 establishLinksBasedOnUniqueSetsCollaboratingSPs(_, _).
- 
 
+ 
+%
 	
 /*{+==============================================================
  |
@@ -489,6 +496,7 @@ linksBasedOnUniqueSetsInSingleProfile(SP, TransactionId) :-
 	hasUniqueSet(SP, TransactionId, UniqueSet),
 	write('DEBUG: Has a unique set: '), write(UniqueSet), nl,
 	transactionID(TransactionId2),
+	%\+ transactionId = transactionId2,
 	\+ TransactionId = TransactionId2,
 	\+ isLinked(SP, TransactionId, TransactionId2),
 	hasUniqueSet(SP, TransactionId2, UniqueSet),
@@ -585,7 +593,7 @@ attrsInProfile(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|Rest]) 
 %	isLinked(SP, TransactionId, TransactionId2, _),
 %	profile(SP, TransactionId2, Attribute, Source),
 %	attrsInProfile(SP, TransactionId, Rest).	
-	
+
 /*{+==============================================================
  |
  | 	attrsInLinkedProfiles(SP, TransactionId, Set)
@@ -607,9 +615,10 @@ attrsInLinkedProfiles(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|
 attrsInLinkedProfiles(SP, TransactionId, [attrNameSourcePair(Attribute, Source)|Rest]) :-
 	nl,nl,write(recordedInDB(SP, TransactionId, attr(Attribute, _), Source)),nl,nl,
 	isLinked(SP, TransactionId, TransactionId2, _),
-	recordedInDB(_, TransactionId2, attr(Attribute, _), Source),
+	%recordedInDB(_, TransactionId2, attr(Attribute, _), Source),
+	recordedInDB(SP, TransactionId2, attr(Attribute, _), Source),
 	attrsInLinkedProfiles(SP, TransactionId, Rest)
-	.	
+	.		
 	
 /*{+==============================================================
  |
@@ -640,7 +649,7 @@ attrsInLinkedProfilesCollaboratingSPs(SP, TransactionId, [attrNameSourcePair(Att
 formLink(SP, TransactionId, TransactionId2, Reason) :-
 	write('DEBUG: In the formLink with: '), write(formLink(SP, TransactionId, TransactionId2, Reason)), nl,
 	isLinked(SP, TransactionId, TransactionId2, Reasons),
-	write('DEBUG: isLinked succeeded!!!! '), nl,
+	write('DEBUG: isLinked succeeded. '), nl,
 	!,
 	(	
 		member(Reason, Reasons),
@@ -656,8 +665,16 @@ formLink(SP, TransactionId, TransactionId2, Reason) :-
 formLink(SP, TransactionId, TransactionId2, Reason) :-
 	write('DEBUG: Trying the second branch of form link'), nl,
 	!,
+	write('*********************************************************************************************'), nl,
+	write('ABOUT TO ADD'), write(isLinked(SP, TransactionId, TransactionId2, [Reason])), nl,
+	write('*********************************************************************************************'), nl,
 	assert(isLinked(SP, TransactionId, TransactionId2, [Reason])),
 	assert(isLinked(SP, TransactionId2, TransactionId, [Reason])),
+	write('-1-1-1-1-1-1--1-1-1-1-1-1-1-1-1--1-1-1-1-1-1-1-1-'), nl,
+	write('After assertion:'), nl,
+	write((SP, TransactionId2, TransactionId, [Reason])), nl, 
+	write('-1-1-1-1-1-1--1-1-1-1-1-1-1-1-1--1-1-1-1-1-1-1-1-'), nl,
+	write('DEBUG: Going into establishment of superlinks: '), nl,
 	transactionID(TransactionId3),
 	\+ TransactionId = TransactionId3,
 	%
@@ -671,6 +688,9 @@ formLink(SP, TransactionId, TransactionId2, Reason) :-
 	.
 	
 formLink(_, _, _, _).
+
+
+% if there is no immediate exchange of data, superLinks establishment may be used
 
 establishSuperLinks(SP, TransactionId, TransactionId2) :-
 	isLinked(SP, TransactionId, TransactionId3, Reason2),
@@ -772,6 +792,24 @@ extendLinkingReason(SP, TransactionId, TransactionId2, Reason, Reasons) :-
 	assert(isLinked(SP, TransactionId, TransactionId2, [Reason | Reasons])),
 	assert(isLinked(SP, TransactionId2, TransactionId, [Reason | Reasons])).
 
+/*{+==============================================================
+ |
+ | superProfile(SP, TransactionId, ListOfAttrs)
+ |    inputs: SP, TransactionId, TransactionId2, Source, Reason, Reasons
+ |    outputs: List of recorded attributes that can be considered as belonging to one user-profile
+ |    effects: To be used for querying what is known about one user
+ |
+ +================================================================}*/
 
-
+ %
+ /*
+superProfile(SP, TransactionId, 'DirectLink', Attribute, Source) :-
+	profile(SP, TransactionId, Attribute, Source),
+	fail.
+	
+superProfile(SP, TransactionId1, 'linkedProfiles', Attribute, Source) :-
+	isLinked(SP, TransactionId1, TransactionId2, Reasons),
+	profile(SP2, TransactionId2, Attribute, Source)
+	.
+*/
 

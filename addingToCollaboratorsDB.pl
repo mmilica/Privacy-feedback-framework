@@ -23,7 +23,8 @@ write(addToCollaboratingProvidersDBs(SP, TransactionId, Attribute, Source)), nl,
 		write('DEBUG: Added to providers database: '), nl, 
 		write(dynamicProfile(SP1, TransactionId, Attribute, Source)), nl
 	), 
-	establishLinks(SP1, TransactionId, Attribute, Source),
+	% this is optional -- depends on the scenario that is modelled -- if the providers would share the knowledge on existing links
+	%establishLinks(SP1, TransactionId, Attribute, Source),
 	fail.
 	
 	

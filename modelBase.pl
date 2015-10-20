@@ -84,7 +84,7 @@ defineCredType(Technology, Type, AttributeDefinitions) :-
 						[attr('IssuerSig', _), attr('Issuer', _), attr('ExpiryDate', _), attr('UserSecret', _) | AttributeList]))
 				)
 			;
-				Technology = 'X509', !, 
+				Technology = 'X.509', !, 
 				(
 					assert(definedCredType(Technology, Type, [attrDef('IssuerSig', 'Signature', 'Known', 'SPChosen', 'Unique'),
 											attrDef('Issuer', 'ID', 'Known', 'SPChosen', 'Shared'),
@@ -114,7 +114,7 @@ defineCredType(Technology, Type, AttributeDefinitions) :-
  | attrDefToAttr(AttributeList, AttributeDefinitionsList)
  |
  |	input:  AttributeList, AttributeDefinitionsList
- |	output: ---
+ |	output: 
  |	effect: sets the AttributeList according to the list of attribute definitions
  | 
  |  -->used for initialising a credential template based on a defined credential type
@@ -148,7 +148,7 @@ issueCred(User, Alias, Technology, Type, Issuer, ExpiryDate, Attributes, Cred) :
 	write('DEBUG: Found the defined credential template'), nl,
 	(
 	definedCredType(Technology, Type, _), !, 
-	%write('DEBUG: Found a defined credential type'), nl,
+	%write('DEBUG: found a defined credential type'), nl,
 	%write(definedCredType(Technology, Type, _)), nl,
 	Cred = cred(Alias, Technology, Type, AttrList),
 		(
@@ -196,7 +196,7 @@ createNewSignature(Issuer, Signature) :-
 +----------------------------------------------------------------}*/
 :-dynamic(sigCount/1).
 sigCount(1).
-	
+
 	
 /*{===============================================================
  |
@@ -233,9 +233,9 @@ credSetAttributes(Cred, [attr(AttrName, AttrValue) | Rest]) :-
 	Cred = cred(_, Technology, Type, _),
 	credSetAttribute(Technology, Type, Cred, AttrName, AttrValue),
 	%write('DEBUG: Setting the rest of the attributes'), nl,
-	credSetAttributes(Cred, Rest)
-	.
+	credSetAttributes(Cred, Rest).
 
+	
 	
 /*{+==============================================================
  |
@@ -292,7 +292,7 @@ credSetAttribute(Technology, Type, cred(_, Technology, Type, [First|Rest]), Attr
 assignValueToElement([attr(_, AttributeValue)|_], AttributeValue, 0) :-
     !.
 
-
+	
 		
 assignValueToElement([_|Rest], AttributeValue, Prefix) :-
 		NewPrefix is Prefix - 1,

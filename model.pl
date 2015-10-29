@@ -191,6 +191,64 @@ showCred(User, SP, TransactionID, Cred, List) :-
 	
 /*{===============================================================
  |
+ |  showCred(User, SP, TransactionID, Cred, ListOfAttrsToBeDisclosed, ReqService)
+ |    inputs: User, SP, TransactionID, Cred, List of attributes to be disclosed, requested service 
+ |    outputs: ---
+ |
+ +=============================================================}*/
+	
+	
+showCred(User, SP, TransactionID, Cred, List, Service) :-
+	Cred,
+	Cred = cred(_, 'X.509', _, ListOfCredAttrs), !,
+	usersCred(User, Cred),
+	Cred,
+	createListOfAttrNames(ListOfCredAttrs, NewList),
+	showCredAttrs(User, SP, TransactionID, Cred, NewList, Service)
+	.
+
+showCred(User, SP, TransactionID, Cred, 'Ownership', Service) :-
+	!, 
+	(
+		(
+		usersCred(User, Cred),
+		%cred(_, Technology, Type, _),
+		Cred = cred(_, Technology, Type, _),
+		getCredAttribute(Cred, 'Issuer', Issuer),
+		storagePolicy(SP, Service, ListOfStoredAttributes),
+			(
+			member('Ownership', ListOfStoredAttributes),
+			addToProvidersDB(SP, TransactionID, attr('Ownership', 'Verified'), credSource(Technology, Type, Issuer))
+			;
+			true
+			),
+		sharingPolicy(SP, Service, ListOfSharedAttributes),
+			(
+			member('Ownership', ListOfSharedAttributes),
+			addToCollaboratingProvidersDBs(SP, TransactionID, attr('Ownership', 'Verified'), credSource(Technology, Type, Issuer))
+			;
+			true
+			)
+		)
+	;
+		(
+		write('ERROR: User does not posses the required credential.')
+		)
+	).
+	
+	
+showCred(User, SP, TransactionID, Cred, List, Service) :-
+	Cred,
+	usersCred(User, Cred),
+	showCredAttrs(User, SP, TransactionID, Cred, List, Service)
+	.
+	
+	
+	
+
+	
+/*{===============================================================
+ |
  |  createListOfAttrNames(ListOfNames, ListOfAttrs)
  |    inputs: List of attribute structures 
  |    effects: extracts the attribute names from the list of 
@@ -273,6 +331,85 @@ showCredAttrs(User, SP, TransactionID, Cred, [First|Rest]) :-
 	showCredAttrs(User, SP, TransactionID, Cred, Rest)
 	.
 	
+	
+	
+	
+
+
+/*{===============================================================
+ |
+ |  showCredAttrs(User, SP, TransactionID, Cred, AttrList, Service)
+ |    inputs: User, SP, TransactionID, Cred, AttrList, Service 
+ |    outputs: ---
+ |    effects: calls the addToProvidersDB predicate for all the attributes from the given list 
+ |
+ +=============================================================}*/
+	
+	
+showCredAttrs(_, _, _, _, [], _) :- !.
+
+
+/*-------in case TID is given -------*/
+
+showCredAttrs(User, SP, TransactionID, Cred, [First|Rest], Service) :-
+	ground(TransactionID), !, 
+	!,
+	(
+		transactionID(TransactionID), write('DEBUG: TransactionID exists. '), nl, !
+	;
+		assert(transactionID(TransactionID)), write('DEBUG: Asserted the new transactionID. '), nl
+	),
+	getCredAttribute(Cred, First, AttrValue),
+	cred(_, Technology, Type, _),
+	Cred = cred(_, Technology, Type, _),
+	usersCred(User, Cred),
+	getCredAttribute(Cred, 'Issuer', Issuer),
+	storagePolicy(SP, Service, ListOfStoredAttributes),
+	(
+		member(First, ListOfStoredAttributes),
+		addToProvidersDB(SP, TransactionID, attr(First, AttrValue), credSource(Technology, Type, Issuer))
+		;
+		true
+	),
+	sharingPolicy(SP, Service, ListOfSharedAttributes),
+	(
+		member(First, ListOfSharedAttributes),
+		addToCollaboratingProvidersDBs(SP, TransactionID, attr(First, AttrValue), credSource(Technology, Type, Issuer))
+		;
+		true
+	),
+	showCredAttrs(User, SP, TransactionID, Cred, Rest, Service)
+	.
+	
+	
+/*-------in case TID needs to be created--------*/
+showCredAttrs(User, SP, TransactionID, Cred, [First|Rest], Service) :-
+	startTransaction(User, SP, TransactionID),
+	assert(transactionID(TransactionID)),
+	getCredAttribute(Cred, First, AttrValue),
+	cred(_, Technology, Type, _),
+	Cred = cred(_, Technology, Type, _),
+	usersCred(User, Cred),
+	getCredAttribute(Cred, 'Issuer', Issuer),
+	storagePolicy(SP, Service, ListOfStoredAttributes),
+	(
+		member(First, ListOfStoredAttributes),
+		addToProvidersDB(SP, TransactionID, attr(First, AttrValue), credSource(Technology, Type, Issuer))
+		;
+		true
+	),
+	sharingPolicy(SP, Service, ListOfSharedAttributes),
+	(
+		member(First, ListOfSharedAttributes),
+		addToCollaboratingProvidersDBs(SP, TransactionID, attr(First, AttrValue), credSource(Technology, Type, Issuer))
+		;
+		true
+	),
+	showCredAttrs(User, SP, TransactionID, Cred, Rest, Service)
+	.
+		
+	
+
 
 
 /*{===============================================================
@@ -670,20 +807,19 @@ formLink(SP, TransactionId, TransactionId2, Reason) :-
 	write('*********************************************************************************************'), nl,
 	assert(isLinked(SP, TransactionId, TransactionId2, [Reason])),
 	assert(isLinked(SP, TransactionId2, TransactionId, [Reason])),
-	write('-1-1-1-1-1-1--1-1-1-1-1-1-1-1-1--1-1-1-1-1-1-1-1-'), nl,
 	write('After assertion:'), nl,
 	write((SP, TransactionId2, TransactionId, [Reason])), nl, 
-	write('-1-1-1-1-1-1--1-1-1-1-1-1-1-1-1--1-1-1-1-1-1-1-1-'), nl,
 	write('DEBUG: Going into establishment of superlinks: '), nl,
-	transactionID(TransactionId3),
-	\+ TransactionId = TransactionId3,
+	% if there would be need to establish 'super links'
+	%transactionID(TransactionId3),
+	%\+ TransactionId = TransactionId3,
 	%
 	%NOTE - there is a choice on the recorded linking reason for this 'indirect link'
 	%It can remain the same, but we could also choose to place a note 'indLink'
 	%It is also possible to check if the reason is 'userInput' type of attribute, in which case we could choose
 	%	not to record further links.
 	%
-	formLink(SP, TransactionId, TransactionId3, Reason),
+	%formLink(SP, TransactionId, TransactionId3, Reason),
 	fail
 	.
 	
